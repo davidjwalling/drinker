@@ -15,7 +15,7 @@ Assembly Language Part 2 - Data Set Access
 
 [ASM004: DCB, OPEN, CLOSE, PUT macros](ASM004.md)  
 [ASM005: Define a File class in a copy book member](ASM005.md)  
-[ASM006: A Log class that inherits the File class](ASM006.md)  
+[ASM006: Class inheritance, Packed Decimal instructions](ASM006.md)  
 
 <hr>
 

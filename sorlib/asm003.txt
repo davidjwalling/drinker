@@ -1,0 +1,165 @@
+***********************************************************************
+*
+*        PROGRAM    ASM003
+*
+*        THIS SAMPLE PROGRAM ILLUSTRATES THE USE OF A DATA SECTION
+*        (DSECT) TO DEFINE THE LAYOUT OF STORAGE IN AN ALLOCATED
+*        MEMORY SPACE, ADDRESSED RELATIVE TO A BASE REGISTER. GETMAIN
+*        AND FREEMAIN MACROS ARE INVOKED TO ALLOCATE AND RELEASE MAIN
+*        MEMORY. SUBROUTINES TO INITIALIZE AND FINALIZE THE PROGRAM
+*        AND A MAINLINE SUBROUTINE TO HOLD OUR PRIMARY LOGIC LOOP ARE
+*        DEFINED TO MAKE THE PROGRAM MORE MODULAR.
+*
+*        ENTRY      R1      PROGRAM ARGUMENTS ADDRESS
+*                   R13     CALLER SAVE AREA ADDRESS
+*                   R14     RETURN ADDRESS
+*                   R15     CONTROL SECTION ADDRESS
+*
+*        EXIT       R14     RETURN ADDRESS
+*                   R15     RESULT CODE
+*
+***********************************************************************
+         EJECT
+***********************************************************************
+*
+*        @PGM       PROGRAM CONTROL SECTION
+*
+***********************************************************************
+         SPACE
+@PGM     CSECT                          PROGRAM ENTRY
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         SPACE
+         STM   R14,R12,12(R13)          SAVE CALLER REGS
+         LR    R12,R15                  @PGM BASE
+         SPACE
+         LA    R0,E$PGML                LENGTH OF STORAGE
+         SPACE
+         GETMAIN R,LV=(0)               GET STORAGE ADDR IN REG 1
+         SPACE
+         LR    R14,R1                   $PGM ADDR
+         LA    R15,E$PGML               $PGM SIZE
+         XR    R2,R2                    SOURCE ADDR (NO COPY)
+         LR    R3,R2                    SOURCE LENGTH (PAD)
+         MVCL  R14,R2                   CLEAR STORAGE TO ZEROS
+         SPACE
+         ST    R13,4(,R1)               SAVE PARENT SAVE AREA ADDR
+         ST    R1,8(,R13)               SAVE CURRENT SAVE AREA ADDR
+         LR    R13,R1                   LOAD SAVE AREA ADDR
+         SPACE
+         BAL   R14,@INIT                INITIALIZE PROGRAM
+         SPACE
+         LTR   R15,R15                  IF INITIALIZATION SUCCEEDED
+         BNZ   @PGM10
+         SPACE
+         BAL   R14,@MAIN                  DO MAINLINE LOGIC
+         SPACE
+@PGM10   DS    0H                       END IF
+         SPACE
+         BAL   R14,@FINAL               FINALIZE PROGRAM
+         SPACE
+         LR    R2,R15                   HOLD RESULT CODE
+         SPACE
+         LA    R0,E$PGML                LENGTH OF STORAGE
+         LR    R1,R13                   SAVE AREA ADDR
+         L     R13,4(,R1)               RESTORE PARENT SAVEAREA ADDR
+         SPACE
+         FREEMAIN R,LV=(R0),A=(R1)      RELEASE STORAGE
+         SPACE
+         LR    R15,R2                   RESULT CODE
+         SPACE
+         LM    R0,R12,20(R13)           LOAD CALLER REGS
+         L     R14,12(,R13)             LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13
+         EJECT
+***********************************************************************
+*
+*        @INIT      INITIALIZE PROGRAM
+*
+***********************************************************************
+         SPACE
+@INIT    DS    0H
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         SPACE
+         ST    R14,PGM$I                SAVE RETURN ADDR (,13)
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         SPACE
+         L     R14,PGM$I                LOAD RETURN ADDR (,13)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13
+         EJECT
+***********************************************************************
+*
+*        @MAIN      MAIN LOGIC LOOP
+*
+***********************************************************************
+         SPACE
+@MAIN    DS    0H
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         SPACE
+         ST    R14,PGM$M                SAVE RETURN ADDR
+         SPACE
+         WTO   'HELLO, WORLD!'          NOTIFY CONSOLE
+         SPACE
+         L     R14,PGM$M                LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13
+         EJECT
+***********************************************************************
+*
+*        @FINAL     FINALIZATION ROUTINE
+*
+***********************************************************************
+         SPACE
+@FINAL   DS    0H
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         SPACE
+         ST    R14,PGM$F                SAVE RETURN ADDR
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         SPACE
+         L     R14,PGM$F                LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13
+         EJECT
+***********************************************************************
+*
+*        W O R K I N G   S T O R A G E
+*
+***********************************************************************
+         SPACE
+         COPY  EREGS
+         EJECT
+         LTORG
+         EJECT
+***********************************************************************
+*
+*        $PGM       PROGRAM DATA SECTION
+*
+***********************************************************************
+         SPACE
+$PGM     DSECT
+         SPACE
+         DS    18F                      REGISTER SAVE AREA
+         SPACE
+PGM$I    DS    F                        @INIT RETURN ADDR
+PGM$M    DS    F                        @MAIN RETURN ADDR
+PGM$F    DS    F                        @FINAL RETURN ADDR
+         SPACE
+E$PGML   EQU   *-$PGM                   SIZE OF SAVE AREA
+         SPACE
+         EJECT
+         END   @PGM                     END OF PROGRAM

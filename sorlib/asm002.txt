@@ -1,0 +1,55 @@
+***********************************************************************
+*
+*        PROGRAM    ASM002
+*
+*        THIS SAMPLE ILLUSTRATES THE COPY, SPACE, EJECT AND LTORG
+*        STATEMENTS, BUILDING ON THE PREVIOUS SAMPLE, ADDING LOGIC
+*        TO SAVE THE CALLING PROGRAM REGISTER VALUES ON ENTRY AND
+*        RESTORING THEM ON EXIT. THE COPY STATEMENT INCLUDES THE
+*        EREGS MEMBER FROM A COPY BOOK DATA SET LISTED IN THE
+*        ASSEMBLY JOB'S SYSLIB CONCATENATION. THE EREGS MEMBER
+*        DEFINES SYMBOLIC NAMES FOR THE GENERAL PURPOSE REGISTERS.
+*
+*        ENTRY      R1      PROGRAM ARGUMENTS ADDRESS
+*                   R13     CALLER SAVE AREA ADDRESS
+*                   R14     RETURN ADDRESS
+*                   R15     CONTROL SECTION ADDRESS
+*
+*        EXIT       R14     RETURN ADDRESS
+*                   R15     RESULT CODE
+*
+***********************************************************************
+         EJECT
+***********************************************************************
+*
+*        @PGM       PROGRAM CONTROL SECTION
+*
+***********************************************************************
+         SPACE
+@PGM     CSECT                          PROGRAM ENTRY
+         SPACE
+         USING @PGM,R12
+         SPACE
+         STM   R14,R12,12(R13)          SAVE CALLER REGS
+         LR    R12,R15                  @PGM BASE
+         SPACE
+         WTO   'HELLO, WORLD!'          NOTIFY CONSOLE
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         SPACE
+         LM    R0,R12,20(R13)           LOAD CALLER REGS
+         L     R14,12(,R13)             LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12
+         EJECT
+***********************************************************************
+*
+*        W O R K I N G   S T O R A G E
+*
+***********************************************************************
+         SPACE
+         COPY  EREGS
+         EJECT
+         LTORG
+         END   @PGM                     END OF PROGRAM

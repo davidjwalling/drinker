@@ -1,0 +1,205 @@
+***********************************************************************
+*
+*        PROGRAM    ASM004
+*
+*        THIS SAMPLE PROGRAM WRITES A MESSAGE TO A DATA SET. A DATA
+*        CONTROL BLOCK (DCB) IS DEFINED IN THE WORKING STORAGE SECTION
+*        THAT CORRESPONDS TO A DATA DEFINTION (DD) STATEMENT IN THE
+*        JOB THAT RUNS THE PROGRAM. STNDARD OPEN, PUT AND CLOSE MACROS
+*        ARE CALLED TO PEROFRM THE I/O.
+*
+*        ENTRY      R1      PROGRAM ARGUMENTS ADDRESS
+*                   R13     CALLER SAVE AREA ADDRESS
+*                   R14     RETURN ADDRESS
+*                   R15     CONTROL SECTION ADDRESS
+*
+*        EXIT       R14     RETURN ADDRESS
+*                   R15     RESULT CODE
+*
+***********************************************************************
+         EJECT
+***********************************************************************
+*
+*        @PGM       PROGRAM CONTROL SECTION
+*
+***********************************************************************
+         SPACE
+@PGM     CSECT                          PROGRAM ENTRY
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         SPACE
+         STM   R14,R12,12(R13)          SAVE CALLER REGS
+         LR    R12,R15                  @PGM BASE
+         SPACE
+         LA    R0,E$PGML                LENGTH OF STORAGE
+         SPACE
+         GETMAIN R,LV=(0)               GET STORAGE ADDR IN REG 1
+         SPACE
+         LR    R14,R1                   $PGM ADDR
+         LA    R15,E$PGML               $PGM SIZE
+         XR    R2,R2                    SOURCE ADDR (NO COPY)
+         LR    R3,R2                    SOURCE LENGTH (PAD)
+         MVCL  R14,R2                   CLEAR STORAGE TO ZEROS
+         SPACE
+         ST    R13,4(,R1)               SAVE PARENT SAVE AREA ADDR
+         ST    R1,8(,R13)               SAVE CURRENT SAVE AREA ADDR
+         LR    R13,R1                   LOAD SAVE AREA ADDR
+         SPACE
+         BAL   R14,@INIT                INITIALIZE PROGRAM
+         SPACE
+         LTR   R15,R15                  IF INITIALIZATION SUCCEEDED
+         BNZ   @PGM10
+         SPACE
+         BAL   R14,@MAIN                  DO MAINLINE LOGIC
+         SPACE
+@PGM10   DS    0H                       END IF
+         SPACE
+         BAL   R14,@FINAL               FINALIZE PROGRAM
+         SPACE
+         LR    R2,R15                   HOLD RESULT CODE
+         SPACE
+         LA    R0,E$PGML                LENGTH OF STORAGE
+         LR    R1,R13                   SAVE AREA ADDR
+         L     R13,4(,R1)               RESTORE PARENT SAVEAREA ADDR
+         SPACE
+         FREEMAIN R,LV=(R0),A=(R1)      RELEASE STORAGE
+         SPACE
+         LR    R15,R2                   RESULT CODE
+         SPACE
+         LM    R0,R12,20(R13)           LOAD CALLER REGS
+         L     R14,12(,R13)             LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13
+         EJECT
+***********************************************************************
+*
+*        @INIT      INITIALIZE PROGRAM
+*
+***********************************************************************
+         SPACE
+@INIT    DS    0H
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         SPACE
+         ST    R14,PGM$I                SAVE RETURN ADDR (,13)
+         SPACE
+         OPEN  (DCBLOG,(OUTPUT))        OPEN LOG FILE
+         SPACE
+         LA    R15,ERLOGOPN             ASSUME OPEN FAILED
+         TM    DCBLOG+48,X'10'          IF FILE OPENED
+         BNO   @INIT10
+         SPACE
+         WTO   'LOG FILE OPENED'          NOTIFY CONSOLE
+         SPACE
+         XR    R15,R15                    ZERO RESULT CODE
+         SPACE
+@INIT10  DS    0H                       END IF
+         SPACE
+         L     R14,PGM$I                LOAD RETURN ADDR (,13)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13
+         EJECT
+***********************************************************************
+*
+*        @MAIN      MAIN LOGIC LOOP
+*
+***********************************************************************
+         SPACE
+@MAIN    DS    0H
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         SPACE
+         ST    R14,PGM$M                SAVE RETURN ADDR
+         SPACE
+         MVI   WCLOGREC,C' '                       CLEAR RECORD
+         MVC   WCLOGREC+1(L'WCLOGREC-1),WCLOGREC   TO SPACES
+         MVC   WCLOGREC(L'CCLOGMSG),CCLOGMSG       STORE MESSAGE
+         SPACE
+         PUT   DCBLOG,WCLOGREC          WRITE LOG RECORD
+         SPACE
+         WTO   'LOG RECORD WRITTEN'     NOTIFY CONSOLE
+         SPACE
+@MAIN10  DS    0H                       PUT SYNAD RETURNS HERE
+         SPACE
+         L     R14,PGM$M                LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+@LOGSYN  DS    0H                       PUT SYNAD ENTERS HERE
+         SPACE
+         LR    R15,R1                   ERROR BITS 0-7
+         SRL   R15,24                   ERROR BITS 24-31
+         B     @MAIN10                  CONTINUE
+         SPACE
+         DROP  R12,R13
+         EJECT
+***********************************************************************
+*
+*        @FINAL     FINALIZATION ROUTINE
+*
+***********************************************************************
+         SPACE
+@FINAL   DS    0H
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         SPACE
+         ST    R14,PGM$F                SAVE RETURN ADDR
+         SPACE
+         TM    DCBLOG+48,X'10'          IF FILE OPENED
+         BNO   @FINL10
+         SPACE
+         CLOSE DCBLOG                     CLOSE LOG FILE
+         SPACE
+         WTO   'LOG FILE CLOSED'          NOTIFY FILE CLOSED
+         SPACE
+         XR    R15,R15                    ZERO RESULT CODE
+         SPACE
+@FINL10  DS    0H                       END IF
+         SPACE
+         L     R14,PGM$F                LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13
+         EJECT
+***********************************************************************
+*
+*        W O R K I N G   S T O R A G E
+*
+***********************************************************************
+         SPACE
+         COPY  EREGS
+         SPACE
+ERLOGOPN EQU   4                        OPEN FAILED
+         SPACE
+CCLOGMSG DC    C'LOG MESSAGE'
+         SPACE
+DCBLOG   DCB   DDNAME=LOG,DSORG=PS,RECFM=FB,                           X
+               LRECL=80,MACRF=(PM),SYNAD=@LOGSYN
+         EJECT
+         LTORG
+         EJECT
+***********************************************************************
+*
+*        $PGM       PROGRAM DATA SECTION
+*
+***********************************************************************
+         SPACE
+$PGM     DSECT
+         SPACE
+         DS    18F                      REGISTER SAVE AREA
+         SPACE
+PGM$I    DS    F                        @INIT RETURN ADDR
+PGM$M    DS    F                        @MAIN RETURN ADDR
+PGM$F    DS    F                        @FINAL RETURN ADDR
+         SPACE
+WCLOGREC DS    CL80                     OUTPUT RECORD
+         SPACE
+E$PGML   EQU   *-$PGM                   SIZE OF SAVE AREA
+         SPACE
+         EJECT
+         END   @PGM                     END OF PROGRAM

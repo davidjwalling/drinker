@@ -1,0 +1,282 @@
+***********************************************************************
+*
+*        @FIL       FILE FACILITY
+*
+*        @FILA      ALLOCATE $FIL STORAGE
+*        @FILI      INITIALIZE $FIL
+*        @FILO      OPEN THE FILE
+*        @FILR      READ FROM THE FILE
+*        @FILW      WRITE TO THE FILE
+*        @FILC      CLOSE THE FILE
+*        @FILZ      RELEASE $FIL STORAGE
+*
+*        COPYRIGHT 2010-2021 DAVID J WALLING. MIT LICENSE.
+*
+***********************************************************************
+         EJECT
+***********************************************************************
+*
+*        @FIL       FILE CONTROL SECTION
+*
+***********************************************************************
+         SPACE
+@FIL     CSECT
+         EJECT
+***********************************************************************
+*
+*        @FILA      ALLOCATE STORAGE FOR INSTANCE
+*
+*        IN         R10     @FIL CSECT ADDR
+*                   R12     CALLER CSECT ADDR
+*                   R13     CALLER DATA ADDR (SAVE AREA)
+*                   R14     RETURN ADDRESS
+*
+*        OUT        R1      $FIL ADDR (OR ABEND)
+*                   R15     GETMAIN RESULT (OR ABEND)
+*
+***********************************************************************
+         SPACE
+@FILA    DS    0H
+         SPACE
+         USING @FIL,R10
+         SPACE
+         LR    R2,R14                   HOLD RETURN ADDR
+         LA    R0,E$FILL                $FIL SIZE
+         SPACE
+         GETMAIN R,LV=(0)               ALLOCATE STORAGE (,10)
+         SPACE
+         LR    R14,R2                   LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R10
+         EJECT
+***********************************************************************
+*
+*        @FILI      INITIALIZE $FIL CONTEXT
+*
+*        IN         R0      DCB OPTION BYTE (BITS 24-31)
+*                   R1      DCB TEMPLATE ADDR
+*                   R10     @FIL CSECT ADDR
+*                   R11     $FIL DSECT ADDR
+*                   R12     CALLER CSECT ADDR
+*                   R13     CALLER DATA ADDR (SAVE AREA)
+*                   R14     RETURN ADDRESS
+*
+***********************************************************************
+         SPACE
+@FILI    DS    0H
+         SPACE
+         USING $FIL,R11
+         SPACE
+         ST    R14,FIL$I                SAVE RETURN ADDR (,11)
+         SPACE
+         STC   R0,FILXOPT               SAVE DCB OPTION BYTE (,11)
+         MVC   FILXDCB,0(R1)            COPY DCB TEMPLATE (,11)
+         SPACE
+         L     R14,FIL$I                LOAD RETURN ADDR (,11)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R11
+         EJECT
+***********************************************************************
+*
+*        @FILO      OPEN THE FILE
+*
+*        IN         R10     @FIL CSECT ADDR
+*                   R11     $FIL DSECT ADDR
+*                   R12     CALLER CSECT ADDR
+*                   R13     CALLER DATA ADDR (SAVE AREA)
+*                   R14     RETURN ADDRESS
+*
+*        OUT        R15     OPEN RESULT CODE
+*
+***********************************************************************
+         SPACE
+@FILO    DS    0H
+         SPACE
+         USING $FIL,R11
+         SPACE
+         ST    R14,FIL$O                SAVE RETURN ADDR (,11)
+         SPACE
+         LA    R1,FILFARG               PARMLIST ADDR (,11)
+         LA    R0,FILXDCB               DCB ADDR (,11)
+         ST    R0,0(,R1)                PUT DCB ADDR IN PARMLIST
+         MVC   0(1,R1),FILXOPT          SET HI BYTE TO OPTION
+         SPACE
+         SVC   19                       ISSUE OPEN
+         SPACE
+         L     R14,FIL$O                LOAD RETURN ADDR (,11)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R11
+         EJECT
+***********************************************************************
+*
+*        @FILR      READ THE FILE
+*
+*        IN         R0      TARGET ADDR FOR READ
+*                   R10     @FIL CSECT ADDR
+*                   R11     $FIL DSECT ADDR
+*                   R12     CALLER CSECT ADDR
+*                   R13     CALLER DATA ADDR (SAVE AREA)
+*                   R14     RETURN ADDRESS
+*
+*        OUT        R15     GET RESULT CODE
+*
+*        GET ROUTINE MAY USE SAVE AREA AT R13
+*
+***********************************************************************
+         SPACE
+@FILR    DS    0H
+         SPACE
+         USING $FIL,R11
+         SPACE
+         ST    R14,FIL$R                SAVE RETURN ADDR (,11)
+         SPACE
+         LA    R1,FILXDCB               DCB ADDR (,11)
+         L     R15,48(,R1)              DCB GET ROUTINE ADDR
+         SPACE
+         BALR  R14,R15                  CALL GET ROUTINE
+         SPACE
+         L     R14,FIL$R                LOAD RETURN ADDR (,11)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R11
+         EJECT
+***********************************************************************
+*
+*        @FILW      WRITE TO THE FILE
+*
+*        IN         R0      SOURCE ADDR FOR WRITE
+*                   R10     @FIL CSECT ADDR
+*                   R11     $FIL DSECT ADDR
+*                   R12     CALLER CSECT ADDR
+*                   R13     CALLER DATA ADDR (SAVE AREA)
+*                   R14     RETURN ADDRESS
+*
+*        OUT        R15     PUT RESULT CODE
+*
+*        PUT ROUTINE MAY USE SAVE AREA AT 13
+*
+***********************************************************************
+         SPACE
+@FILW    DS    0H
+         SPACE
+         USING @FIL,R10
+         USING $FIL,R11
+         SPACE
+         ST    R14,FIL$W                SAVE RETURN ADDR (,11)
+         SPACE
+         LA    R1,FILXDCB               DCB ADDR (,11)
+         L     R15,48(,R1)              DCB PUT ROUTINE ADDR
+         SPACE
+         BALR  R14,R15                  CALL PUT ROUTINE
+         SPACE
+         XR    R15,R15                  ZERO RESULT IF NO SYNAD
+         SPACE
+@FILW80  DS    0H                       SYNAD RETURNS HERE
+         SPACE
+         L     R14,FIL$W                LOAD RETURN ADDR (,11)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+@FILWSYN DS    0H                       SYNAD ENTRY
+         SPACE
+         LR    R15,R1                   ERROR BITS 0-7
+         SRL   R15,24                   ERROR BITS 24-31
+         SPACE
+         B     @FILW80                  CONTINUE
+         SPACE
+         DROP  R10,R11
+         EJECT
+***********************************************************************
+*
+*        @FILC      CLOSE THE FILE
+*
+*        IN         R10     @FIL CSECT ADDR
+*                   R11     $FIL DSECT ADDR
+*                   R12     CALLER CSECT ADDR
+*                   R13     CALLER DATA ADDR (SAVE AREA)
+*                   R14     RETURN ADDRESS
+*
+*        OUT        R15     SVC 20 RESULT CODE
+*
+***********************************************************************
+         SPACE
+@FILC    DS    0H
+         SPACE
+         USING $FIL,R11
+         SPACE
+         ST    R14,FIL$C                SAVE RETURN ADDR (,11)
+         SPACE
+         LA    R1,FILFARG               PARMLIST ADDR (,11)
+         LA    R0,FILXDCB               DCB ADDR (,11)
+         ST    R0,0(,R1)                PUT DCB ADDR IN PARMLIST
+         MVI   0(R1),X'80'              MARK AS LAST PARM
+         SPACE
+         SVC   20                       CLOSE FILE
+         SPACE
+         L     R14,FIL$C                LOAD RETURN ADDR (,11)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R11
+         EJECT
+***********************************************************************
+*
+*        @FILZ      FINALIZE $FIL OBJECT
+*
+*        IN         R10     @FIL CSECT ADDR
+*                   R11     $FIL DSECT ADDR
+*                   R12     CALLER CSECT ADDR
+*                   R13     CALLER DATA ADDR (SAVE AREA)
+*                   R14     RETURN ADDRESS
+*
+*        OUT        R15     FREEMAIN RESULT CODE (OR ABEND)
+*
+***********************************************************************
+         SPACE
+@FILZ    DS    0H
+         SPACE
+         USING @FIL,R10
+         SPACE
+         LR    R2,R14                   HOLD RETURN ADDR
+         LR    R1,R11                   $FIL ADDR
+         LA    R0,E$FILL                $FIL LENGTH
+         SPACE
+         FREEMAIN R,LV=(0),A=(1)        RELEASE STORAGE (,10)
+         SPACE
+         LR    R14,R2                   LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R10
+         EJECT
+***********************************************************************
+*
+*        W O R K I N G   S T O R A G E
+*
+***********************************************************************
+         SPACE
+FILETYPI EQU   X'80'                    INPUT FILE OPTION BYTE
+FILETYPO EQU   X'8F'                    OUTPUT FILE OPTION BYTE
+         SPACE
+***********************************************************************
+*
+*        $FIL       FILE DATA SECTION
+*
+***********************************************************************
+         SPACE
+$FIL     DSECT
+         SPACE
+FIL$I    DS    F                        @FILI RETURN ADDR
+FIL$O    DS    F                        @FILO RETURN ADDR
+FIL$R    DS    F                        @FILR RETURN ADDR
+FIL$W    DS    F                        @FILW RETURN ADDR
+FIL$C    DS    F                        @FILC RETURN ADDR
+         SPACE
+FILFARG  DS    F                        SVC 19,20 INPUT
+         SPACE
+         DS    0F                       FULLWORD ALIGN DCB
+FILXDCB  DS    XL96                     DCB COPY
+FILXOPT  DS    X                        OPTION BYTE
+         SPACE
+E$FILL   EQU   *-$FIL                   DATA SECTION LENGTH
+         EJECT

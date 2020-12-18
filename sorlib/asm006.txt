@@ -1,0 +1,235 @@
+***********************************************************************
+*
+*        PROGRAM    ASM006
+*
+*        THIS PROGRAM WRITES A RECORD TO A DATA SET. A REUSABLE @LOG
+*        CLASS IS PLACED IN A COPY BOOK MEMBER. @LOG INHERITS FROM, OR
+*        EXTENDS, THE @FIL CLASS. @LOG ADDS DATE AND TIME INFORMATION
+*        TO THE MESSAGE WRITTEN TO THE DATA SET.
+*
+*        ENTRY      R1      PROGRAM ARGUMENTS ADDRESS
+*                   R13     CALLER SAVE AREA ADDRESS
+*                   R14     RETURN ADDRESS
+*                   R15     CONTROL SECTION ADDRESS
+*
+*        EXIT       R14     RETURN ADDRESS
+*                   R15     RESULT CODE
+*
+***********************************************************************
+         EJECT
+***********************************************************************
+*
+*        @PGM       PROGRAM CONTROL SECTION
+*
+***********************************************************************
+         SPACE
+@PGM     CSECT                          PROGRAM ENTRY
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         SPACE
+         STM   R14,R12,12(R13)          SAVE CALLER REGS
+         LR    R12,R15                  @PGM BASE
+         SPACE
+         LA    R0,E$PGML                LENGTH OF STORAGE
+         SPACE
+         GETMAIN R,LV=(0)               GET STORAGE ADDR IN REG 1
+         SPACE
+         LR    R14,R1                   $PGM ADDR
+         LA    R15,E$PGML               $PGM SIZE
+         XR    R2,R2                    SOURCE ADDR (NO COPY)
+         LR    R3,R2                    SOURCE LENGTH (PAD)
+         MVCL  R14,R2                   CLEAR STORAGE TO ZEROS
+         SPACE
+         ST    R13,4(,R1)               SAVE PARENT SAVE AREA ADDR
+         ST    R1,8(,R13)               SAVE CURRENT SAVE AREA ADDR
+         LR    R13,R1                   LOAD SAVE AREA ADDR
+         SPACE
+         BAL   R14,@INIT                INITIALIZE PROGRAM
+         SPACE
+         LTR   R15,R15                  IF INITIALIZATION SUCCEEDED
+         BNZ   @PGM10
+         SPACE
+         BAL   R14,@MAIN                  DO MAINLINE LOGIC
+         SPACE
+@PGM10   DS    0H                       END IF
+         SPACE
+         BAL   R14,@FINAL               FINALIZE PROGRAM
+         SPACE
+         LR    R2,R15                   HOLD RESULT CODE
+         SPACE
+         LA    R0,E$PGML                LENGTH OF STORAGE
+         LR    R1,R13                   SAVE AREA ADDR
+         L     R13,4(,R1)               RESTORE PARENT SAVEAREA ADDR
+         SPACE
+         FREEMAIN R,LV=(R0),A=(R1)      RELEASE STORAGE
+         SPACE
+         LR    R15,R2                   RESULT CODE
+         SPACE
+         LM    R0,R12,20(R13)           LOAD CALLER REGS
+         L     R14,12(,R13)             LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13
+         EJECT
+***********************************************************************
+*
+*        @INIT      INITIALIZE PROGRAM
+*
+***********************************************************************
+         SPACE
+@INIT    DS    0H
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         USING @LOG,R10
+         SPACE
+         ST    R14,PGM$I                SAVE RETURN ADDR (,13)
+         SPACE
+         L     R10,PGM@LOG              @LOG ADDR (,12)
+         BAL   R14,@LOGA                ALLOCATE $LOG (,10)
+         SPACE
+         ST    R1,PGM$LOG               SAVE $LOG ADDR (,13)
+         SPACE
+         WTO   '@LOGA OK'               NOTIFY CONSOLE
+         SPACE
+         LA    R1,DCBLOG                LOG DCB ADDR (,12)
+         L     R10,PGM@LOG              @LOG ADDR (,12)
+         L     R11,PGM$LOG              $LOG ADDR (,13)
+         BAL   R14,@LOGI                INITIALIZE $LOG (,10)
+         SPACE
+         WTO   '@LOGI OK'               NOTIFY CONSOLE
+         SPACE
+         L     R10,PGM@LOG              @LOG ADDR (,12)
+         L     R11,PGM$LOG              $LOG ADDR (,13)
+         BAL   R14,@LOGO                OPEN LOG FILE (,10)
+         SPACE
+         LTR   R15,R15                  IF FILE OPEN
+         BNZ   @INIT10
+         SPACE
+         WTO   '@LOGO OK'                 NOTIFY CONSOLE
+         SPACE
+         XR    R15,R15                    ZERO RESULT CODE
+         SPACE
+@INIT10  DS    0H                       END IF
+         SPACE
+         L     R14,PGM$I                LOAD RETURN ADDR (,13)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13,R10
+         EJECT
+***********************************************************************
+*
+*        @MAIN      MAIN LOGIC LOOP
+*
+***********************************************************************
+         SPACE
+@MAIN    DS    0H
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         USING @LOG,R10
+         SPACE
+         ST    R14,PGM$M                SAVE RETURN ADDR
+         SPACE
+         LA    R0,L'CCLOGMSG            MESSAGE SIZE
+         LA    R1,CCLOGMSG              MESSAGE ADDR (,12)
+         L     R10,PGM@LOG              @LOG ADDR (,12)
+         L     R11,PGM$LOG              $LOG ADDR (,13)
+         BAL   R14,@LOGW                WRITE MESSAGE
+         SPACE
+         LTR   R15,R15                  IF RECORD WRITTEN
+         BNZ   @MAIN10
+         SPACE
+         WTO   '@LOGW OK'                 NOTIFY CONSOLE
+         SPACE
+@MAIN10  DS    0H                       END IF
+         SPACE
+         L     R14,PGM$M                LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13,R10
+         EJECT
+***********************************************************************
+*
+*        @FINAL     FINALIZATION ROUTINE
+*
+***********************************************************************
+         SPACE
+@FINAL   DS    0H
+         SPACE
+         USING @PGM,R12
+         USING $PGM,R13
+         USING @LOG,R10
+         SPACE
+         ST    R14,PGM$F                SAVE RETURN ADDR
+         SPACE
+         L     R10,PGM@LOG              @LOG ADDR (,12)
+         L     R11,PGM$LOG              $LOG ADDR (,13)
+         BAL   R14,@LOGC                CLOSE LOG FILE (,10)
+         SPACE
+         LTR   R15,R15                  IF FILE CLOSED
+         BNZ   @FINL10
+         SPACE
+         WTO   '@LOGC OK'                 NOTIFY CONSOLE
+         SPACE
+@FINL10  DS    0H                       END IF
+         SPACE
+         L     R10,PGM@LOG              @LOG ADDR (,12)
+         L     R11,PGM$LOG              $LOG ADDR (,13)
+         BAL   R14,@LOGZ                RELEASE LOG (,10)
+         SPACE
+         WTO   '@LOGZ OK'               NOTIFY CONSOLE
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         SPACE
+         L     R14,PGM$F                LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13,R10
+         EJECT
+***********************************************************************
+*
+*        W O R K I N G   S T O R A G E
+*
+***********************************************************************
+         SPACE
+         COPY  EREGS
+         SPACE
+PGM@LOG  DC    A(@LOG)                  @LOG ADDR
+         SPACE
+CCLOGMSG DC    C'LOG MESSAGE'
+         SPACE
+DCBLOG   DCB   DDNAME=LOG,DSORG=PS,RECFM=FB,                           X
+               LRECL=80,MACRF=(PM),SYNAD=@FILWSYN
+         EJECT
+         LTORG
+         EJECT
+***********************************************************************
+*
+*        $PGM       PROGRAM DATA SECTION
+*
+***********************************************************************
+         SPACE
+$PGM     DSECT
+         SPACE
+         DS    18F                      REGISTER SAVE AREA
+         SPACE
+PGM$I    DS    F                        @INIT RETURN ADDR
+PGM$M    DS    F                        @MAIN RETURN ADDR
+PGM$F    DS    F                        @FINAL RETURN ADDR
+         SPACE
+PGM$LOG  DS    F                        $LOG ADDR
+         SPACE
+E$PGML   EQU   *-$PGM                   SIZE OF SAVE AREA
+         SPACE
+         EJECT
+***********************************************************************
+*
+*        INCLUDED OBJECTS
+*
+***********************************************************************
+         SPACE
+         COPY  @LOG                     LOG CLASS
+         COPY  @FIL                     FILE CLASS
+         END   @PGM                     END OF PROGRAM

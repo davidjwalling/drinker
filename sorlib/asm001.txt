@@ -1,0 +1,25 @@
+***********************************************************************
+*
+*        PROGRAM    ASM001
+*
+*        THIS SAMPLE PROGRAM ILLUSTRATES THE USING, DROP, CSECT AND
+*        END STATEMENTS AND ISSUES A WTO MACRO TO SEND A MESSAGE TO
+*        THE OPERATOR CONSOLE BEFORE RETURNING TO THE CALLER.
+*
+*        ENTRY      R1      PROGRAM ARGUMENTS ADDRESS
+*                   R13     CALLER SAVE AREA ADDRESS
+*                   R14     RETURN ADDRESS
+*                   R15     CONTROL SECTION ADDRESS
+*
+*        EXIT       R14     RETURN ADDRESS
+*                   R15     RESULT CODE
+*
+***********************************************************************
+@PGM     CSECT                          PROGRAM ENTRY
+         USING @PGM,12                  RESOLVE @PGM TO R12
+         LR    12,15                    @PGM BASE
+         WTO   'HELLO, WORLD!'          NOTIFY CONSOLE
+         XR    15,15                    ZERO RESULT CODE
+         BR    14                       RETURN TO CALLER
+         DROP  12                       RELEASE R12 USAGE
+         END   @PGM                     END OF PROGRAM

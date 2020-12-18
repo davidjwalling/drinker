@@ -1,0 +1,374 @@
+***********************************************************************
+*                                                                     *
+*        @RND       PSEUDO-RANDOM FACILITY                            *
+*                                                                     *
+*        @RNDA      ALLOCATE STORAGE                                  *
+*        @RNDI      INITIALIZE STORAGE                                *
+*        @RNDG      GET TIME-BASED SEED VALUES                        *
+*        @RNDS      SEED RANDOM GENERATOR                             *
+*        @RNDP      PRODUCE RANDOM NUMBER                             *
+*        @RNDZ      FINALIZE INSTANCE                                 *
+*                                                                     *
+***********************************************************************
+         SPACE
+@RND     CSECT
+         EJECT
+***********************************************************************
+*                                                                     *
+*        USINGS                                                       *
+*                                                                     *
+***********************************************************************
+         SPACE
+         USING @RND,R10                 RESOLVE @RND TO R10
+         USING $RND,R11                 RESOLVE $RND TO R11
+         EJECT
+***********************************************************************
+*                                                                     *
+*        @RNDA      ALLOCATE STORAGE                                  *
+*                                                                     *
+*        IN         R10     @RND CSECT ADDR                           *
+*                   R12     CALLER CSECT ADDR                         *
+*                   R13     CALLER DSECT ADDR (SAVE AREA)             *
+*                   R14     RETURN ADDR                               *
+*                                                                     *
+*        OUT        R1      $RND ADDR OR ZERO                         *
+*                                                                     *
+***********************************************************************
+         SPACE
+@RNDA    DS    0H                       ENTRY
+         SPACE
+         LR    R2,R14                   SAVE RETURN ADDR
+         LA    R0,E$RNDL                $RND LENGTH
+         SPACE
+         GETMAIN R,LV=(0)               ALLOCATE STORAGE
+         SPACE
+         LR    R14,R2                   LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         EJECT
+***********************************************************************
+*                                                                     *
+*        @RNDI      INITIALZE $RND CONTEXT                            *
+*                                                                     *
+*        IN         R10     @RND CSECT ADDR                           *
+*                   R11     $RND DSECT ADDR                           *
+*                   R12     CALLER CSECT ADDR                         *
+*                   R13     CALLER DSECT ADDR (SAVE AREA)             *
+*                   R14     RETURN ADDR                               *
+*                                                                     *
+*        OUT        R15     0                                         *
+*                                                                     *
+***********************************************************************
+         SPACE
+         USING @RND,R10                 RESOLVE @RND TO R10
+         SPACE
+@RNDI    DS    0H                       ENTRY
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         LTR   R11,R11                  DO WE HAVE A $RND?
+         BZ    @RNDI90                  NO, EXIT
+         SPACE
+         LR    R2,R14                   SAVE RETURN ADDR
+         SPACE
+         LR    R14,R11                  TARGET ADDR
+         LA    R15,E$RNDL-4             TARGET LENGTH
+         XR    R0,R0                    SOURCE ADDR
+         XR    R1,R1                    SOURCE LENGTH
+         MVCL  R14,R0                   ZERO $RND CONTEXT
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         LR    R14,R2                   LOAD RETURN ADDR
+         SPACE
+@RNDI90  DS    0H
+         SPACE
+         BR    R14                      RETURN TO CALLER
+         EJECT
+***********************************************************************
+*                                                                     *
+*        @RNDG      GET TIME-BASED SEED VALUES                        *
+*                                                                     *
+*        IN         R10     @RND CSECT ADDR                           *
+*                   R11     $RND DSECT ADDR                           *
+*                   R12     CALLER CSECT ADDR                         *
+*                   R13     CALLER DSECT ADDR (SAVE AREA)             *
+*                   R14     RETURN ADDR                               *
+*                                                                     *
+*        OUT        R15     0                                         *
+*                                                                     *
+***********************************************************************
+         SPACE
+         USING @RND,R10                 RESOLVE @RND TO R10
+         USING $RND,R11                 RESOLVE $RND TO R11
+         SPACE
+@RNDG    DS    0H                       ENTRY
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         LTR   R11,R11                  DO WE HAVE A $RND?
+         BZ    @RNDG90                  NO, EXIT
+         SPACE
+         ST    R14,RND$G                SAVE RETURN ADDR
+         SPACE
+         TIME  STCK,RNDWDTIM            GET 51-BIT MICROSECONDS
+         SPACE
+         TIME  BIN                      GET CURRENT .01 SECONDS
+         SPACE
+         ST    R0,RNDWFJIF              STORE CURRENT .01 SECONDS
+         SPACE
+         TIME  TU                       GET 26.04166 MICROSECS
+         SPACE
+         ST    R0,RNDWFCLK              STORE 26.04166 MICROSECS
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         L     R14,RND$G                LOAD RETURN ADDRESS
+         SPACE
+@RNDG90  DS    0H
+         SPACE
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R10                      RELEASE R10 USAGE
+         DROP  R11                      RELEASE R11 USAGE
+         EJECT
+***********************************************************************
+*                                                                     *
+*        @RNDS      SEED RANDOM GENERATOR                             *
+*                                                                     *
+*        IN         R10     @RND CSECT ADDR                           *
+*                   R11     $RND DSECT ADDR                           *
+*                   R12     CALLER CSECT ADDR                         *
+*                   R13     CALLER DSECT ADDR (SAVE AREA)             *
+*                   R14     RETURN ADDR                               *
+*                                                                     *
+*        OUT        R15     0                                         *
+*                                                                     *
+***********************************************************************
+         SPACE
+         USING @RND,R10                 RESOLVE @RND TO R10
+         USING $RND,R11                 RESOLVE $RND TO R11
+         SPACE
+@RNDS    DS    0H                       ENTRY
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         LTR   R11,R11                  DO WE HAVE A $FIL?
+         BZ    @RNDS90                  NO, EXIT
+         SPACE
+         ST    R14,RND$S                SAVE RETURN ADDR
+         SPACE
+         BAL   R14,@RNDG                GET TIME VALUES
+         SPACE
+         L     R1,RNDWFSEC              APPROX SECONDS
+         XR    R0,R0                    ZERO HIGH-ORDER
+         SPACE
+         SLDL  R0,3                     0 = T >> 29, 1 = T << 3
+         LR    R2,R0                    2 = T >> 29
+         OR    R2,R1                    2 = ( T >> 29 ) OR ( T << 3 )
+         SLDL  R0,2                     0 = T >> 27, 1 = T << 5
+         OR    R0,R1                    0 = ( T >> 27 ) OR ( T << 5 )
+         XR    R2,R0                    2 = T'
+         SPACE
+         L     R1,RNDWFJIF              .01 SECONDS
+         XR    R0,R0                    ZERO HIGH-ORDER
+         SPACE
+         SLDL  R0,7                     0 = M >> 25, 1 = M << 7
+         LR    R3,R0                    3 = M >> 25
+         OR    R3,R1                    3 = ( M >> 25 ) OR ( M << 7 )
+         SLDL  R0,4                     0 = M >> 21, 1 = M << 11
+         OR    R0,R1                    0 = ( M >> 21 ) OR ( M << 11 )
+         XR    R3,R0                    3 = M'
+         SPACE
+         X     R3,RNDWFJIF              3 = M''
+         XR    R2,R3                    2 = T' XOR M''
+         SPACE
+         L     R1,RNDWFCLK              26.06144 SECS
+         XR    R0,R0                    ZERO HIGH-ORDER
+         SPACE
+         SLDL  R0,13                    0 = C >> 19, 1 = C << 13
+         LR    R3,R0                    3 = C >> 19
+         OR    R3,R1                    3 = ( C >> 19 ) OR ( C << 13 )
+         SLDL  R0,4                     0 = C >> 15, 1 = C << 17
+         XR    R3,R0                    3 = C'
+         SPACE
+         X     R3,RNDWFCLK              3 = C''
+         XR    R2,R3                    2 = T' XOR M'' XOR C''
+         SPACE
+         LA    R0,1                     SET BIT 32
+         OR    R0,R2                    IN THE BASE SEED
+         ST    R0,RNDWFX                STORE X FACTOR
+         SPACE
+         LA    R0,2                     SET BIT 31
+         OR    R0,R2                    IN THE BASE SEED
+         ST    R0,RNDWFY                STORE Y FACTOR
+         SPACE
+         LA    R0,4                     SET BIT 30
+         OR    R0,R2                    IN THE BASE SEED
+         ST    R0,RNDWFZ                STORE Z FACTOR
+         SPACE
+         LA    R0,8                     SET BIT 29
+         OR    R0,R2                    IN THE BASE SEED
+         ST    R0,RNDWFW                STORE W FACTOR
+         SPACE
+         XR    R0,R0                    ZERO
+         ST    R0,RNDWFC                STORE C FACTOR
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         L     R14,RND$S                LOAD RETURN ADDRESS
+         SPACE
+@RNDS90  DS    0H
+         SPACE
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R10                      RELEASE R10 USAGE
+         DROP  R11                      RELEASE R11 USAGE
+         EJECT
+***********************************************************************
+*                                                                     *
+*        @RNDP      PRODUCE RANDOM NUMBER                             *
+*                                                                     *
+*        IN         R10     @RND CSECT ADDR                           *
+*                   R11     $RND DSECT ADDR                           *
+*                   R12     CALLER CSECT ADDR                         *
+*                   R13     CALLER DSECT ADDR (SAVE AREA)             *
+*                   R14     RETURN ADDR                               *
+*                                                                     *
+*        OUT        R0      PSEUDO-RANDOM                             *
+*                   R15     0                                         *
+*                                                                     *
+***********************************************************************
+         SPACE
+         USING @RND,R10                 RESOLVE @RND TO R10
+         USING $RND,R11                 RESOLVE $RND TO R11
+         SPACE
+@RNDP    DS    0H                       ENTRY
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         LTR   R11,R11                  DO WE HAVE A $FIL?
+         BZ    @RNDP90                  NO, EXIT
+         SPACE
+         ST    R14,RND$P                SAVE RETURN ADDR
+         SPACE
+         L     R1,RNDWFW                W SEED VALUE
+         L     R2,RNDWFZ                Z SEED VALUE
+         L     R3,RNDWFC                C ZEED VALUE
+         SPACE
+         ST    R1,RNDWFZ                Z <-- W
+         SPACE
+         LR    R0,R1                    M = W
+         ALR   R0,R1                    M = W + W
+         ALR   R0,R2                    M = W + W + Z
+         ALR   R0,R3                    M = W + W + Z + C
+         SPACE
+         ST    R0,RNDWFW                W <-- W + W + Z + C
+         SPACE
+         SRL   R1,3                     W >> 3
+         SRL   R2,2                     Z >> 2
+         SRL   R3,2                     C >> 2
+         SPACE
+         ALR   R1,R2                    ( W>>3 ) + ( Z>>2 )
+         ALR   R1,R3                    ( W>>3 ) + ( Z>>2 ) + ( C>>2 )
+         SRL   R1,30                    K
+         SPACE
+         ST    R1,RNDWFC                C <-- k
+         SPACE
+         L     R2,RNDCFMLT              MULTIPLIER
+         L     R3,RNDWFX                X SEED VALUE
+         MR    R2,R2                    3 = ( X * 69069 ) MOD 2**32
+         LA    R3,1(,R3)                3 = ( X * 69069 ) + 1 MOD 2**32
+         SPACE
+         ST    R3,RNDWFX                X <-- ( X * 69069 ) + 1
+         SPACE
+         L     R2,RNDWFY                Y SEED VALUE
+         LR    R1,R2                    Y SEED VALUE
+         SLL   R1,13                    Y << 13
+         XR    R2,R1                    Y' = Y XOR ( Y << 13 )
+         LR    R1,R2                    Y'
+         SRL   R1,17                    Y' >> 17
+         XR    R2,R1                    Y'' = Y' XOR ( Y' >> 17 )
+         LR    R1,R2                    Y''
+         SLL   R1,5                     Y'' << 5
+         XR    R2,R1                    Y''' = Y'' XOR ( Y'' << 5 )
+         SPACE
+         ST    R2,RNDWFY                Y <-- Y'''
+         SPACE
+         ALR   R0,R2                    W + Y
+         ALR   R0,R3                    W + Y + X
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         L     R14,RND$P                LOAD RETURN ADDRESS
+         SPACE
+@RNDP90  DS    0H
+         SPACE
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R10                      RELEASE R10 USAGE
+         DROP  R11                      RELEASE R11 USAGE
+         EJECT
+***********************************************************************
+*                                                                     *
+*        @RNDZ      $RND DESTRUCTOR                                   *
+*                                                                     *
+*        IN         R10     @RND CSECT ADDR                           *
+*                   R11     $RND DSECT ADDR                           *
+*                   R12     CALLER CSECT ADDR                         *
+*                   R13     CALLER DSECT ADDR (SAVE AREA)             *
+*                   R14     RETURN ADDR                               *
+*                                                                     *
+*        OUT        R15     FREEMAIN RESULT CODE                      *
+*                                                                     *
+***********************************************************************
+         SPACE
+         USING @RND,R10                 RESOLVE @RND TO R10
+         USING $RND,R11                 RESOLVE $RND TO R11
+         SPACE
+@RNDZ    DS    0H                       ENTRY
+         SPACE
+         XR    R15,R15                  ZERO RESULT CODE
+         LTR   R11,R11                  DO WE HAVE A $RND?
+         BZ    @RNDZ90                  NO, EXIT
+         SPACE
+         LR    R2,R11                   TARGET ADDR
+         LA    R3,E$RNDL                TARGET LENGTH
+         XR    R0,R0                    SOURCE ADDR
+         XR    R1,R1                    SOURCE LENGTH
+         MVCL  R2,R0                    ZERO $RND
+         SPACE
+         LR    R2,R14                   SAVE RETURN ADDR
+         SPACE
+         LA    R0,E$RNDL                $RND SIZE
+         LR    R1,R11                   $RND ADDR
+         SPACE
+         FREEMAIN R,LV=(0),A=(1)        RELEASE STORAGE
+         SPACE
+         LR    R14,R2                   LOAD RETURN ADDR
+         SPACE
+@RNDZ90  DS    0H
+         SPACE
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R10                      RELEASE R10 USAGE
+         DROP  R11                      RELEASE R11 USAGE
+         EJECT
+***********************************************************************
+*                                                                     *
+*        W O R K I N G   S T O R A G E                                *
+*                                                                     *
+***********************************************************************
+         SPACE
+RNDCFMLT DC    F'69069'                 MULTIPLIER
+         SPACE
+$RND     DSECT                          DATA STORAGE
+         SPACE
+RND$G    DS    F                        GENERATE SAVE AREA
+RND$S    DS    F                        SEED SAVE AREA
+RND$P    DS    F                        PRODUCE SAVE AREA
+         SPACE
+RNDWFC   DS    F                        SEED VALUE C
+RNDWFW   DS    F                        SEED VALUE W
+RNDWFX   DS    F                        SEED VALUE X
+RNDWFY   DS    F                        SEED VALUE Y
+RNDWFZ   DS    F                        SEED VALUE Z
+         SPACE
+RNDWDTIM DS    0D                       DOUBLE-WORD SYSTEM TIMER
+RNDWFSEC DS    F                        HIGH-ORDER TOD (SECONDS)
+RNDWFJIF DS    F                        JIFFIES (HUNDREDTHS OF SECS)
+RNDWFCLK DS    F                        TIMER UNITS (1=26.04166 MICRO)
+         SPACE
+E$RNDL   EQU   *-$RND                   LENGTH OF DATA AREA
+         EJECT

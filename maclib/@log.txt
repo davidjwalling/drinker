@@ -1,0 +1,459 @@
+***********************************************************************
+*
+*        @LOG       LOG FACILITY
+*
+*        @LOGA      ALLOCATE STORAGE FOR $LOG INSTANCE
+*        @LOGI      INITIALIZE INSTANCE
+*        @LOGO      OPEN THE FILE
+*        @LOGR      READ FROM THE FILE
+*        @LOGW      WRITE TO THE FILE
+*        @LOGC      CLOSE THE FILE
+*        @LOGZ      FINALIZE THE $LOG INSTANCE
+*
+*        COPYRIGHT 2010-2021 DAVID J WALLING. MIT LICENSE.
+*
+***********************************************************************
+         EJECT
+***********************************************************************
+*
+*        @LOG       LOG CONTROL SECTION
+*
+***********************************************************************
+         SPACE
+@LOG     CSECT
+         EJECT
+***********************************************************************
+*
+*        @LOGA      ALLOCATE STORAGE FOR INSTANCE
+*
+*        IN         R10     @LOG CSECT ADDR
+*                   R12     CALLER CSECT ADDR
+*                   R13     CALLER DATA ADDR (SAVE AREA)
+*                   R14     RETURN ADDR
+*
+*        OUT        R1      $LOG ADDR (OR ABEND)
+*                   R15     GETMAIN RESULT (OR ABEND)
+*
+***********************************************************************
+         SPACE
+@LOGA    DS    0H
+         SPACE
+         USING @LOG,R10
+         SPACE
+         LR    R2,R14                   HOLD RETURN ADDR
+         LA    R0,E$LOGL                $LOG SIZE
+         SPACE
+         GETMAIN R,LV=(0)               ALLOCATE STORAGE (,10)
+         SPACE
+         LR    R14,R2                   LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R10
+         EJECT
+***********************************************************************
+*
+*        @LOGI      INITIALIZE $LOG CONTEXT
+*
+*        IN         R1      DCB TEMPLATE ADDR
+*                   R10     @LOG ADDR
+*                   R11     $LOG ADDR
+*                   R12     CALLER CODE
+*                   R13     CALLER DATA
+*                   R14     RETURN ADDR
+*
+***********************************************************************
+         SPACE
+@LOGI    DS    0H
+         SPACE
+         USING $LOG,R11
+         SPACE
+         STM   R10,R14,LOG$I            SAVE CALLER LINKAGE (,11)
+         LM    R12,R13,LOG$I            LOAD LOCAL LINKAGE (,11)
+         SPACE
+         DROP  R11
+         USING @LOG,R12
+         USING $LOG,R13
+         USING @FIL,R10
+         SPACE
+         ST    R1,LOG$DCB               SAVE DCB TEMPLATE ADDR (,13)
+         SPACE
+         MVI   LOGWCDL1,C'.'            DELIMITER 1
+         MVI   LOGWCDL2,C'.'            DELIMITER 2
+         MVI   LOGWCDL3,C' '            DELIMITER 3
+         MVI   LOGWCDL4,C':'            DELIMITER 4
+         MVI   LOGWCDL5,C':'            DELIMITER 5
+         MVI   LOGWCDL6,C' '            DELIMITER 6
+         SPACE
+         L     R10,LOG@FIL              @FIL BASE (,12)
+         BAL   R14,@FILA                ALLOCATE $FIL (,10)
+         SPACE
+         ST    R1,LOG$FIL               SAVE $FIL ADDR (,13)
+         SPACE
+         LA    R0,FILETYPO              DCB OPTION BYTE FOR LOG
+         L     R1,LOG$DCB               DCB TEMPLATE FOR LOG (,13)
+         L     R10,LOG@FIL              @FIL BASE (,12)
+         L     R11,LOG$FIL              $FIL BASE (,13)
+         BAL   R14,@FILI                INITIALIZE $FIL (,10)
+         SPACE
+         LM    R10,R14,LOG$I            LOAD CALLER LINKAGE (,13)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13,R10
+         EJECT
+***********************************************************************
+*
+*        @LOGO      OPEN LOG
+*
+*        IN         R10     @LOG ADDR
+*                   R11     $LOG ADDR
+*                   R12     CALLER CODE
+*                   R13     CALLER SAVE AREA
+*                   R14     RETURN ADDR
+*
+*        OUT        R15     RESULT CODE
+*
+***********************************************************************
+         SPACE
+@LOGO    DS    0H
+         SPACE
+         USING $LOG,R11
+         SPACE
+         STM   R10,R14,LOG$O            SAVE CALLER LINKAGE (,11)
+         LM    R12,R13,LOG$O            LOAD LOCAL LINKAGE (,11)
+         SPACE
+         DROP  R11
+         USING @LOG,R12
+         USING $LOG,R13
+         USING @FIL,R10
+         SPACE
+         L     R10,LOG@FIL              @FIL ADDR (,12)
+         L     R11,LOG$FIL              $FIL ADDR (,13)
+         BAL   R14,@FILO                OPEN $FIL (,10)
+         SPACE
+         SPACE
+         LM    R10,R14,LOG$O            LOAD CALLER LINKAGE (,13)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13,R10
+         EJECT
+***********************************************************************
+*
+*        @LOGT      GET CURRENT DATE TIME AND CONVERT
+*
+*        UPDATE THE DATE AND TIME IN THE LOG OUPUT RECORD IF THE
+*        CURRENT DATE AND TIME HAVE CHANGED.
+*
+*        IN         R10     @LOG ADDR
+*                   R11     $LOG ADDR
+*                   R12     CALLER ADDR
+*                   R13     CALLER SAVE AREA
+*                   R14     RETURN ADDR
+*
+*        OUT        R15     RESULT CODE
+*
+***********************************************************************
+         SPACE
+@LOGT    DS    0H
+         SPACE
+         USING $LOG,R11
+         SPACE
+         STM   R10,R14,LOG$T            SAVE CALLER LINKAGE (,11)
+         LM    R12,R13,LOG$T            LOAD LOCAL LINKAGE (,11)
+         SPACE
+         DROP  R11
+         USING @LOG,R12
+         USING $LOG,R13
+         SPACE
+         TIME  ZONE=LT                  R0,R1 = 0HHMMSST YYYYJJJZ
+         SPACE
+         STM   R0,R1,LOGWPDBL           STORE PACKED TIME AND DATE
+         UNPK  LOGWCWRK,LOGWPDBL        ZONE DECIMAL TIME AND DATE
+         SPACE
+         MVC   LOGWCHRS,LOGWCWRK+1      STORE HOUR
+         MVC   LOGWCMIN,LOGWCWRK+3      STORE MINUTE
+         MVC   LOGWCSEC,LOGWCWRK+5      STORE SECOND
+         SPACE
+         C     R1,LOGWFDAT              IF DATE HAS CHANGED
+         BE    @LOGT40
+         SPACE
+         ST    R1,LOGWFDAT                UPDATE SAVED DATE
+         SPACE
+         XR    R0,R0                      00000000 YYYYJJJ+
+         SRL   R1,12                      00000000 000YYYYJ
+         O     R1,LOGCF15                 00000000 000YYYYF
+         SPACE
+         STM   R0,R1,LOGWPDBL             STORE ERA AND YEAR
+         AP    LOGWPDBL,LOGCPERA          PACKED YEAR
+         UNPK  LOGWCYRS,LOGWPDBL          ZONED DECIMAL YEAR
+         OI    LOGWCYRS+(L'LOGWCYRS-1),X'F0'
+         SPACE
+         CVB   R1,LOGWPDBL                00000000 0000YYYY
+         STH   R1,LOGWHYRS                STORE BINARY YEAR
+         ICM   R1,B'0011',LOGWFDAT+2      00000000 0000JJJ+
+         STM   R0,R1,LOGWPDBL             STORE DECIMAL JULIAN DAY
+         CVB   R1,LOGWPDBL                00000000 00000JJJ
+         EJECT
+         LA    R3,LOGCTMON                TABLE OF MONTHS
+         TM    LOGWHYRS+1,X'03'           IF YEAR MOD 4 IS ZERO
+         BNZ   @LOGT10                      AND
+         CLC   LOGWCYRS+2,LOGCC00         IF NOT CENTURY MARK
+         BE    @LOGT10
+         LA    R3,2(,R3)                    LEAP-DAY TABLE OFFSET
+         SPACE
+@LOGT10  DS    0H                         END IF
+         SPACE
+         LA    R0,12                      MONTHS PER YEAR
+         XR    R2,R2                      ZERO TABLE INDEX
+         SPACE
+@LOGT20  DS    0H                         WHILE DAY > MAX DAY(MONTH)
+         SPACE
+         CH    R1,0(R2,R3)
+         BNH   @LOGT30
+         SH    R1,0(R2,R3)                  SUBTRACT MAX DAY(MONTH)
+         LA    R2,16(,R2)                   POINT TO NEXT ELEMENT
+         BCT   R0,@LOGT20
+         SPACE
+@LOGT30  DS    0H                         END DO
+         SPACE
+         SRL   R2,4                       CONVERT OFFSET TO INDEX
+         LA    R2,1(,R2)                  MONTH (1-12)
+         SPACE
+         CVD   R2,LOGWPDBL                PACKED MONTH
+         UNPK  LOGWCMON,LOGWPDBL          ZONED DECIMAL
+         OI    LOGWCMON+(L'LOGWCMON-1),X'F0'
+         SPACE
+         CVD   R1,LOGWPDBL                PACKED DAY (1-31)
+         UNPK  LOGWCMDY,LOGWPDBL          ZONED DECIMAL
+         OI    LOGWCMDY+(L'LOGWCMDY-1),X'F0'
+         SPACE
+@LOGT40  DS    0H                       END IF
+         SPACE
+         LM    R10,R14,LOG$T            LOAD CALLER LINKAGE
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13
+         EJECT
+***********************************************************************
+*
+*        @LOGW      WRITE MESSAGE TO LOG FILE
+*
+*        TRUNCATE MESSAGE IF TOO LONG. SETUP DATE AND TIME IN LOG
+*        BUFFER. SETUP CALLER MESSAGE IN LOG BUFFER. WRITE MESSAGE.
+*
+*        IN         R0      MESSAGE LENGTH
+*                   R1      MESSAGE ADDR
+*                   R10     @LOG ADDR
+*                   R11     $LOG ADDR
+*                   R12     CALLER ADDR
+*                   R13     CALLER SAVE AREA
+*                   R14     RETURN ADDR
+*
+*        OUT        R15     RESULT CODE
+*
+***********************************************************************
+         SPACE
+@LOGW    DS    0H
+         SPACE
+         USING $LOG,R11
+         SPACE
+         STM   R10,R14,LOG$W            SAVE CALLER LINKAGE (,11)
+         LM    R12,R13,LOG$W            LOAD LOCAL LINKAGE (,11)
+         SPACE
+         DROP  R11
+         USING @LOG,R12
+         USING $LOG,R13
+         SPACE
+         MVI   LOGWCMSG,C' '            CLEAR MESSAGE AREA (,13)
+         MVC   LOGWCMSG+1(L'LOGWCMSG-1),LOGWCMSG
+         SPACE
+         LTR   R0,R0                    IF MESSAGE LENGTH > 0
+         BZ    @LOGW90                    AND (,12)
+         LTR   R1,R1                    IF MESSAGE ADDR != 0
+         BZ    @LOGW90
+         SPACE
+         LR    R2,R0                      MESSAGE LENGTH
+         LA    R0,LOGEMAXL                MAX LOG MSG TEXT LEN
+         CR    R2,R0                      IF MSG TEXT LEN TOO LONG
+         BNH   @LOGW10                      (,12)
+         LR    R2,R0                        SHORTEN LEN TO MAX
+         SPACE
+@LOGW10  DS    0H                         END IF
+         SPACE
+         BCTR  R2,R0                      LENGTH MINUS ONE
+         EX    R2,@LOGXWRT                COPY MESSAGE TO I/O BUF (,12)
+         SPACE
+         LR    R10,R12                    @LOG ADDR
+         LR    R11,R13                    $LOG ADDR
+         BAL   R14,@LOGT                  PUT DATE/TIME INTO BUF (,12)
+         SPACE
+         USING @FIL,R10                   RESOLVE @FIL TO R10
+         SPACE
+         LA    R0,LOGWCREC                LOG RECORD ADDR (,13)
+         L     R10,LOG@FIL                @FIL ADDR (,12)
+         L     R11,LOG$FIL                $FIL ADDR (,13)
+         BAL   R14,@FILW                  WRITE TO FILE
+         SPACE
+@LOGW90  DS    0H                       END IF
+         SPACE
+         LM    R10,R14,LOG$W            LOAD CALLER LINKAGE (,13)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+@LOGXWRT MVC   LOGWCMSG(0),0(R1)        MOVE MESSAGE TO RECORD (,13)
+         SPACE
+         DROP  R12,R13,R10
+         EJECT
+***********************************************************************
+*
+*        @LOGC      CLOSE $LOG
+*
+*        IN         R10     @LOG ADDR
+*                   R11     $LOG ADDR
+*                   R12     CALLER CSECT ADDR
+*                   R13     CALLER DATA ADDR (SAVE AREA)
+*                   R14     RETURN ADDR
+*
+*        OUT        R15     RESULT CODE
+*
+***********************************************************************
+         SPACE
+@LOGC    DS    0H
+         SPACE
+         USING $LOG,R11
+         SPACE
+         STM   R10,R14,LOG$C            SAVE CALLER LINKAGE (,11)
+         LM    R12,R13,LOG$C            LOAD LOCAL LINKAGE (,11)
+         SPACE
+         DROP  R11
+         USING @LOG,R12
+         USING $LOG,R13
+         USING @FIL,R10
+         SPACE
+         L     R10,LOG@FIL              @FIL ADDR (,12)
+         L     R11,LOG$FIL              $FIL ADDR (,13)
+         BAL   R14,@FILC                CLOSE $FIL (,10)
+         SPACE
+         LM    R10,R14,LOG$C            LOAD CALLER LINKAGE (,13)
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R12,R13,R10
+         EJECT
+***********************************************************************
+*
+*        @LOGZ      FINALIZE $LOG OBJECT
+*
+*        IN         R10     @LOG ADDR
+*                   R11     $LOG ADDR
+*                   R12     CALLER CSECT ADDR
+*                   R13     CALLER DATA ADDR (SAVE AREA)
+*                   R14     RETURN ADDR
+*
+*        OUT        R15     FREEMAIN RESULT CODE (OR ABEND)
+*
+***********************************************************************
+         SPACE
+@LOGZ    DS    0H
+         SPACE
+         USING $LOG,R11
+         SPACE
+         STM   R10,R14,LOG$Z            SAVE CALLER LINKAGE (,11)
+         LM    R12,R13,LOG$Z            LOAD LOCAL LINKAGE (,11)
+         SPACE
+         DROP  R11
+         USING @LOG,R12
+         USING $LOG,R13
+         USING @FIL,R10
+         SPACE
+         L     R10,LOG@FIL              @FIL ADDR (,12)
+         L     R11,LOG$FIL              $FIL ADDR (,13)
+         BAL   R14,@FILZ                RELEASE $FIL (,10)
+         SPACE
+         LM    R10,R14,LOG$Z            LOAD CALLER LINKAGE (,13)
+         SPACE
+         DROP  R12,R13,R10
+         USING @LOG,R10
+         SPACE
+         LR    R2,R14                   HOLD RETURN ADDR
+         LR    R1,R11                   $LOG ADDR
+         LA    R0,E$LOGL                $LOG LENGTH
+         SPACE
+         FREEMAIN R,LV=(0),A=(1)        RELEASE STORAGE (,10)
+         SPACE
+         LR    R14,R2                   LOAD RETURN ADDR
+         BR    R14                      RETURN TO CALLER
+         SPACE
+         DROP  R10
+         EJECT
+***********************************************************************
+*
+*        W O R K I N G   S T O R A G E
+*
+***********************************************************************
+         SPACE
+LOGEMAXL EQU   60                       MAX MESSAGE LENGTH
+         SPACE
+LOG@FIL  DC    A(@FIL)                  @FIL ADDR
+         SPACE
+LOGCF15  DC    F'15'                    ZONE MASK
+LOGCPERA DC    P'1900'                  ERA
+LOGCC00  DC    CL2'00'                  CENTURY MARK
+         SPACE
+LOGCTMON DC    H'31',H'31',H'7',CL10'January'
+         DC    H'28',H'29',H'8',CL10'February'
+         DC    H'31',H'31',H'5',CL10'March'
+         DC    H'30',H'30',H'5',CL10'April'
+         DC    H'31',H'31',H'3',CL10'May'
+         DC    H'30',H'30',H'4',CL10'June'
+         DC    H'31',H'31',H'4',CL10'July'
+         DC    H'31',H'31',H'6',CL10'August'
+         DC    H'30',H'30',H'9',CL10'September'
+         DC    H'31',H'31',H'7',CL10'October'
+         DC    H'30',H'30',H'8',CL10'November'
+         DC    H'31',H'31',H'8',CL10'December'
+         EJECT
+***********************************************************************
+*
+*        $LOG       LOG DATA SECTION
+*
+***********************************************************************
+         SPACE
+$LOG     DSECT
+         SPACE
+         DS    18F                      LINKAGE SAVE AREA
+         SPACE
+LOG$I    DS    5F                       @LOGI SAVE AREA
+LOG$O    DS    5F                       @LOGO SAVE AREA
+LOG$T    DS    5F                       @LOGT SAVE AREA
+LOG$W    DS    5F                       @LOGW SAVE AREA
+LOG$C    DS    5F                       @LOGC SAVE AREA
+LOG$Z    DS    5F                       @LOGZ SAVE AREA
+         SPACE
+         DS    0D
+LOGWPDBL DS    PL8                      PACKED DOUBLE-WORD
+         SPACE
+LOG$DCB  DS    F                        DCB ADDR IN @PGM
+LOG$FIL  DS    F                        $FIL ADDR
+LOGWFDAT DS    F                        DATE SAVE (EEYYJJJ+)
+         SPACE
+LOGWHYRS DS    H                        BINARY YEAR
+LOGWHWRT DS    H                        LOG FILE WRITE RESULT
+         SPACE
+LOGWCWRK DS    XL16                     '0HHMMSSYYYYNNDDD'
+         SPACE
+         DS    0D                       DOUBLE-WORD ALIGN RECORD
+LOGWCREC DS    0CL80                    OUTPUT LOG RECORD
+LOGWCYRS DS    CL4                        YEAR
+LOGWCDL1 DS    CL1                        '.'
+LOGWCMON DS    CL2                        MONTH
+LOGWCDL2 DS    CL1                        '.'
+LOGWCMDY DS    CL2                        DAY OF MONTH
+LOGWCDL3 DS    CL1                        ' '
+LOGWCHRS DS    CL2                        HOUR
+LOGWCDL4 DS    CL1                        ':'
+LOGWCMIN DS    CL2                        MINUTE
+LOGWCDL5 DS    CL1                        ':'
+LOGWCSEC DS    CL2                        SECOND
+LOGWCDL6 DS    CL1                        ' '
+LOGWCMSG DS    CL60                       MESSAGE
+         SPACE
+E$LOGL   EQU   *-$LOG                   $LOG LENGTH
+         EJECT

@@ -2395,11 +2395,11 @@ $(SUBCHAN)
 @SF P
 Hercules S/370, ESA/390 and z/Architecture Emulator
 @NL
-Copyright (c) 1999-2015 Roger Bowler, Jan Jaeger, and others.
+Copyright 1999-2015 Roger Bowler, Jan Jaeger, and others.
 @SBA 21,0
 Configuration Samples and Source Code
 @NL
-Copyright (c) 2010-2021 David J. Walling. MIT License.
+Copyright 2010-2021 David J. Walling. MIT License.
 ```
 
 ### Start Hercules with MVS 3.8 Configuration and Custom Hercules Screen

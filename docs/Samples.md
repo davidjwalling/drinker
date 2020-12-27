@@ -1,6 +1,6 @@
 ## Sample Programs and JCL
 
-Assembly Language Part 1 - The Basics
+Assembly Language Part 1 - Memory Allocation and Common Directives
 
 [ASM001: USING, CSECT, END statements and WTO macro](ASM001.md)  
 [ASM002: COPY, SPACE, EJECT, LTORG, Caller Save Area](ASM002.md)  

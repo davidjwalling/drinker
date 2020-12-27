@@ -11,7 +11,7 @@ Job Control Language - Generation Data Group (GDG) and Procedure (PROC)
 [GDG: Delete and Create Generation Data Group Base, Model and Generation](GDG.md)  
 [ASMLKED: A Procedure to Assemble, Link and Run a Program](ASMLKED.md)
 
-Assembly Language Part 2 - Data Set Access
+Assembly Language Part 2 - Data Set Output
 
 [ASM004: DCB, OPEN, CLOSE, PUT macros](ASM004.md)  
 [ASM005: Define a File class in a copy book member](ASM005.md)  

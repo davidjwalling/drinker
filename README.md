@@ -13,4 +13,4 @@
 <hr><table width=100%><tr><td><img src="images/drinker.png"></td><td><img src="images/tso.png"></td></tr></table>
 drinker @ <a href="https://dinopedia.fandom.com/wiki/Drinker">dinopedia.fandom.com</a><hr>
 
-&copy; 2010-2021 David J. Walling. MIT License. <i>"What's a S0C4? To keep your feet warm."</i>
+&copy; 2021 David J. Walling. MIT License. <i>"What's a S0C4? To keep your feet warm."</i>

@@ -427,7 +427,7 @@ At this point, instead of documenting each individual RPF command, I'll note the
 
 ### Backup Development Source Files
 
-We can submit our backup job either by entering the "submit" command on the command line while editing the member (RPF Option 2) or outside of RPF by entering the submit command directly in TSO. Since we included a NOTIFY statement on the job card, one the job ends, a notification appears the next time we hit enter or send any other attention identifer (AID) from the terminal.
+We can submit our backup job either by entering the "submit" command on the command line while editing the member (RPF Option 2) or outside of RPF by entering the submit command directly in TSO. Since we included a NOTIFY statement on the job card, once the job ends, a notification appears the next time we hit enter or send any other attention identifer (AID) from the terminal.
 
 <hr><table><tr><td><img src="../images/tn3270-16.png"></td></tr></table><hr>
 

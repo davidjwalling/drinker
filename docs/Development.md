@@ -553,7 +553,7 @@ Our second job step, JS020, wrote link editor messages to DWALL01.DEV.SYSPRINT(I
 
 <hr><table><tr><td><img src="../images/tn3270-19.png"></td></tr></table><hr>
 
-The linkage output of the linkage editor step is an executable modules written to DWALL01.DEV.MODLIB(ASM001). This file is primarily binary. The actual machine instructions for the executable program are in the final record beginning with the x45 x10 xF0 x16 values. We saw these earlier in DWALL01.DEV.SYSPRINT(IFOX00).
+The linkage output of the linkage editor step is an executable module written to DWALL01.DEV.MODLIB(ASM001). This file is primarily binary. The actual machine instructions for the executable program are in the final record beginning with the x45 x10 xF0 x16 values. We saw these earlier in DWALL01.DEV.SYSPRINT(IFOX00).
 
 <hr><table><tr><td><img src="../images/tn3270-21.png"></td></tr>
 <tr><td><img src="../images/tn3270-22.png"></td></tr></table><hr>

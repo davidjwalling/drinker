@@ -80,7 +80,7 @@ $
 
 ### Create an SSH Key-Pair on your Client System and Upload it
 
-When we use our SSH client account "callisto" to access our server, we will not be prompted for a password stored anywhere on the server. Instead, we will be prompted for a "passphrase" that has been used to encrypt a private key on our client computer. Here our client is a Windows 10 laptop. The private key must never leave the laptop. It's corresponding part, a public key, will be uploaded to the cloud-based server. The SSH service will confirm our identify by exchanging signed or encrypted data that can only be verified or decrypted by the other half of the key-pair. Here I use the popular puttygen utility to create the key-pair. PuTTY can be downloaded <a href="https://the.earth.li/~sgtatham/putty/latest/w64/putty-64bit-0.74-installer.msi">here</a>.
+When we use our SSH client account "callisto" to access our server, we will not be prompted for a password stored anywhere on the server. Instead, we will be prompted for a "passphrase" that has been used to encrypt a private key on our client computer. Here our client is a Windows 10 laptop. The private key must never leave the laptop. Its corresponding part, a public key, will be uploaded to the cloud-based server. The SSH service will confirm our identify by exchanging signed or encrypted data that can only be verified or decrypted by the other half of the key-pair. Here I use the popular puttygen utility to create the key-pair. PuTTY can be downloaded <a href="https://the.earth.li/~sgtatham/putty/latest/w64/putty-64bit-0.74-installer.msi">here</a>.
 
 <hr><table><tr><td><img src="../images/putty-1.png"></td></tr></table><hr>
 

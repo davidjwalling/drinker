@@ -100,7 +100,7 @@ Unlike public key certificates used by SSL, SSH private keys do not expire. But 
 
 ### Upload PuTTY-Format Public Key
 
-Here we'll assume our cloud-based server is named "mycloudserver". Windows 10 has inclued scp (secure copy) since the Fall Creators Update 1709 in 2017.
+Here we'll assume our cloud-based server is named "mycloudserver". Windows 10 has included scp (secure copy) since the Fall Creators Update 1709 in 2017.
 ```
 C:\Windows\System32\OpenSSH> scp putty_rsa.pub callisto@mycloudserver:putty_rsa.pub
 callisto@mycloudserver's password:
